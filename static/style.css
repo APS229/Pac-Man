@@ -33,8 +33,8 @@ body {
 }
 
 table {
-    width: 690px;
     height: 690px;
+    width: 690px;
     border-spacing: 0;
 }
 
@@ -44,8 +44,8 @@ tr {
 }
 
 td {
-    width: 30px;
     height: 30px;
+    width: 30px;
     padding: 0;
     background: black;
     vertical-align: middle;
@@ -60,39 +60,27 @@ td {
     background: rgb(32, 32, 131);
 }
 
-#player {
-    display: block;
-    height: 80%;
-    width: 80%;
-    background-color: yellow;
+#player, .particle, .ghost {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
     margin: auto;
+}
+
+#player, .ghost {
+    display: block;
+    height: 80%;
+    width: 80%;
+}
+
+#player {
+    background-color: yellow;
 }
 
 .particle {
-    width: 25%;
     height: 25%;
+    width: 25%;
     background: white;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-}
-
-.ghost {
-    display: block;
-    height: 80%;
-    width: 80%;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
 }

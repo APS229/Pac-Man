@@ -1,5 +1,6 @@
 window.onload = () => {
-    const GAME_SPEED = 200;
+    const PLAYER_SPEED = 200;
+    const GHOST_SPEED = 250;
     const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
     const MAP = [
@@ -103,23 +104,36 @@ window.onload = () => {
             super(positionX, positionY);
             this.color = color;
             this.num = num;
+            this.steps = [];
+            this.chasingPlayer = false;
         }
 
         getRandomSpace() {
             let x = 0, y = 0;
+            x = Math.floor(Math.random() * 4);
+            if (x < 2) x += this.x - 6;
+            else x += this.x + 5;
             do {
-                x = Math.floor(Math.random() * 5) + this.x - 2;
-                y = Math.floor(Math.random() * 5) + this.y - 2;
-            } while ((x === this.x && y === this.y) || x >= MAP_SIZE || x <= 0 || y >= MAP_SIZE || y <= 0 || MAP[y][x] === 0);
+                x = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.x;
+                y = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.y;
+            } while ((x === this.x && y === this.y) || x >= MAP_SIZE || x <= 0 || y >= MAP_SIZE || y <= 0 || !MAP[y][x]);
             return { x, y };
         }
 
         pathFind(endX, endY) {
-            // Search for the player in a 5x5 radius
-            if (this.x - endX > 3 || this.x - endX < -3 || this.y - endY > 3 || this.y - endY < -3) {
+            // Search for the player in a 7x7 radius
+            if (this.x - endX > 7 || this.x - endX < -7 || this.y - endY > 7 || this.y - endY < -7) {
+                if (this.chasingPlayer) {
+                    this.chasingPlayer = false;
+                    this.steps = [];
+                }
+                if (this.steps.length) return;
                 const cords = this.getRandomSpace();
                 endX = cords.x;
                 endY = cords.y;
+            }
+            else {
+                this.chasingPlayer = true;
             }
             const graph = new Graph(MAP);
             const start = graph.grid[this.y][this.x];
@@ -133,6 +147,7 @@ window.onload = () => {
                 // MAP uses Y value before X value
                 this.x = this.steps[0].y;
                 this.y = this.steps[0].x;
+                this.steps.shift();
             }
         }
     }
@@ -181,17 +196,20 @@ window.onload = () => {
     function startGame() {
         if (started) return;
         started = true;
-        updateGame();
-        window.gameInterval = setInterval(() => {
-            updateGame();
-        }, GAME_SPEED);
+        window.playerInterval = setInterval(() => {
+            updatePlayer();
+        }, PLAYER_SPEED);
+
+        window.ghostInterval = setInterval(() => {
+            updateGhosts();
+        }, GHOST_SPEED);
 
         window.onkeydown = event => {
             player.changeDirection(event.key);
         }
     }
 
-    function updateGame() {
+    function updatePlayer() {
         if (player.move()) {
             const playerElement = document.getElementById('player');
             const positionElement = document.getElementById(`${player.x} ${player.y}`);
@@ -202,13 +220,20 @@ window.onload = () => {
             }
             positionElement.append(playerElement);
         }
+    }
+
+    function updateGhosts() {
         for (let i = 0; i < 4; i++) {
             const ghost = ghosts[i];
             ghost.move(player.x, player.y);
-            const ghostElement = document.getElementById(`ghost ${i}`);
+            const ghostElement = document.getElementById(`ghost ${ghost.num}`);
             const positionElement = document.getElementById(`${ghost.x} ${ghost.y}`);
             positionElement.append(ghostElement);
-            if (ghost.x === player.x && ghost.y === player.y) return clearInterval(window.gameInterval);
+            if (ghost.x === player.x && ghost.y === player.y) {
+                clearInterval(window.playerInterval);
+                clearInterval(window.ghostInterval);
+                break;
+            }
         }
     }
 };
