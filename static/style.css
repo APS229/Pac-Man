@@ -56,6 +56,10 @@ td {
     background: rgb(31, 31, 172);
 }
 
+.gate {
+    background: rgb(32, 32, 131);
+}
+
 #player {
     display: block;
     height: 80%;
@@ -69,7 +73,7 @@ td {
     margin: auto;
 }
 
-.coin {
+.particle {
     width: 25%;
     height: 25%;
     background: white;
