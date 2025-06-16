@@ -110,9 +110,6 @@ window.onload = () => {
 
         getRandomSpace() {
             let x = 0, y = 0;
-            x = Math.floor(Math.random() * 4);
-            if (x < 2) x += this.x - 6;
-            else x += this.x + 5;
             do {
                 x = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.x;
                 y = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.y;
