@@ -1,6 +1,7 @@
 window.onload = () => {
     const PLAYER_SPEED = 200;
     const GHOST_SPEED = 250;
+    const SEARCH_RADIUS = 7;
     const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
     const MAP = [
@@ -111,15 +112,15 @@ window.onload = () => {
         getRandomSpace() {
             let x = 0, y = 0;
             do {
-                x = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.x;
-                y = [-6, -5, 5, 6][Math.floor(Math.random() * 4)] + this.y;
+                x = [-(SEARCH_RADIUS - 1), -(SEARCH_RADIUS - 2), SEARCH_RADIUS - 2, SEARCH_RADIUS - 1][Math.floor(Math.random() * 4)] + this.x;
+                y = [-(SEARCH_RADIUS - 1), -(SEARCH_RADIUS - 2), SEARCH_RADIUS - 2, SEARCH_RADIUS - 1][Math.floor(Math.random() * 4)] + this.y;
             } while ((x === this.x && y === this.y) || x >= MAP_SIZE || x <= 0 || y >= MAP_SIZE || y <= 0 || !MAP[y][x]);
             return { x, y };
         }
 
         pathFind(endX, endY) {
             // Search for the player in a 7x7 radius
-            if (this.x - endX > 7 || this.x - endX < -7 || this.y - endY > 7 || this.y - endY < -7) {
+            if (this.x - endX > SEARCH_RADIUS || this.x - endX < -SEARCH_RADIUS || this.y - endY > SEARCH_RADIUS || this.y - endY < -SEARCH_RADIUS) {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
                     this.steps = [];
@@ -149,6 +150,7 @@ window.onload = () => {
         }
     }
 
+    let particles = 0;
     createMap();
 
     const player = new Player(11, 13);
@@ -177,12 +179,13 @@ window.onload = () => {
             for (let j = 0; j < MAP_SIZE; j++) {
                 const space = document.createElement('td');
                 space.id = `${j} ${i}`;
-                if (i === 10 && j === 11) space.className = 'gate';
-                else if (!MAP[i][j]) space.className = 'edge';
+                if (!MAP[i][j]) space.className = 'edge';
+                else if (MAP[i][j] === 3) space.className = 'gate';
                 else if (MAP[i][j] === 2) {
                     const particle = document.createElement('div');
                     particle.className = 'particle';
                     space.append(particle);
+                    particles++;
                 }
                 row.append(space);
             }
@@ -214,6 +217,8 @@ window.onload = () => {
             if (particle) {
                 particle.remove();
                 MAP[player.y][player.x] = 1;
+                particles--;
+                if (!particles) endGame('win');
             }
             positionElement.append(playerElement);
         }
@@ -227,10 +232,19 @@ window.onload = () => {
             const positionElement = document.getElementById(`${ghost.x} ${ghost.y}`);
             positionElement.append(ghostElement);
             if (ghost.x === player.x && ghost.y === player.y) {
-                clearInterval(window.playerInterval);
-                clearInterval(window.ghostInterval);
+                endGame('lose');
                 break;
             }
         }
+    }
+
+    function endGame(gameStatus) {
+        clearInterval(window.playerInterval);
+        clearInterval(window.ghostInterval);
+        const gameStatusElement = document.getElementById('game_status');
+        gameStatusElement.style.display = 'block';
+        gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
+        gameStatusElement.style.color = gameStatus === 'win' ? 'green' : 'red';
+        document.getElementById('map').append(gameStatusElement);
     }
 };

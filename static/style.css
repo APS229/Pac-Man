@@ -32,10 +32,11 @@ body {
     border: 3px solid rgb(235, 235, 0);
 }
 
-table {
+#map {
     height: 690px;
     width: 690px;
     border-spacing: 0;
+    position: relative;
 }
 
 tr {
@@ -60,7 +61,7 @@ td {
     background: rgb(32, 32, 131);
 }
 
-#player, .particle, .ghost {
+#player, .particle, .ghost, #game_status {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -83,4 +84,13 @@ td {
     height: 25%;
     width: 25%;
     background: white;
+}
+
+#game_status {
+    display: none;
+    margin-top: 50px;
+    font-size: 120px;
+    text-shadow: 1px 1px white;
+    font-family: Impact, fantasy;
+    text-align: center;
 }
