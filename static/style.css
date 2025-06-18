@@ -85,7 +85,7 @@ td {
 }
 
 .particle,
-.phiddenParticle {
+.hiddenParticle {
     height: 25%;
     width: 25%;
     background: white;

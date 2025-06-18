@@ -67,14 +67,16 @@ window.onload = () => {
                     break;
                 case 'ArrowLeft':
                     if (this.x === 0) {
-                        this.x = MAP_SIZE - 1; // teleport to right side
+                        // teleport to right side
+                        this.x = MAP_SIZE - 1;
                         break;
                     }
                     this.x--;
                     break;
                 case 'ArrowRight':
                     if (this.x === MAP_SIZE - 1) {
-                        this.x = 0; // teleport to left side
+                        // teleport to left side
+                        this.x = 0;
                         break;
                     }
                     this.x++;
@@ -130,7 +132,8 @@ window.onload = () => {
                     this.chasingPlayer = false;
                     this.steps = [];
                 }
-                if (this.steps.length) return; // Keep following previous steps if not searching for the player
+                // Keep following previous steps if not searching for the player
+                if (this.steps.length) return;
                 while (this.steps.length > SEARCH_RADIUS_MAX || this.steps.length < SEARCH_RADIUS_MIN) {
                     const cords = this.getRandomSpace();
                     this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
@@ -214,7 +217,8 @@ window.onload = () => {
         particles = 254;
         window.gameMap = MAP;
         createEntities();
-        const hiddenParticles = document.querySelectorAll('.hiddenParticle'); // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
+        // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
+        const hiddenParticles = document.querySelectorAll('.hiddenParticle');
         for (const hiddenParticle of hiddenParticles) {
             hiddenParticle.className = 'particle';
         }
