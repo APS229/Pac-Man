@@ -153,22 +153,6 @@ window.onload = () => {
     let particles = 0;
     createMap();
 
-    const player = new Player(11, 13);
-    const playerElement = document.createElement('div');
-    playerElement.id = 'player';
-    document.getElementById(`${player.x} ${player.y}`).append(playerElement);
-
-    const ghosts = [];
-    for (let i = 0; i < 4; i++) {
-        const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
-        ghosts.push(ghost);
-        const ghostElement = document.createElement('div');
-        ghostElement.id = `ghost ${i}`;
-        ghostElement.className = 'ghost';
-        ghostElement.style.backgroundColor = ghost.color;
-        document.getElementById(`${ghost.x} ${ghost.y}`).append(ghostElement);
-    }
-
     let started = false;
     document.getElementById('play').onclick = startGame;
 
@@ -185,17 +169,53 @@ window.onload = () => {
                     const particle = document.createElement('div');
                     particle.className = 'particle';
                     space.append(particle);
-                    particles++;
                 }
                 row.append(space);
             }
             mapElement.append(row);
+        }
+        const playerElement = document.createElement('div');
+        playerElement.id = 'player';
+        document.getElementById(`11 13`).append(playerElement);
+        for (let i = 0; i < 4; i++) {
+            const ghostElement = document.createElement('div');
+            ghostElement.id = `ghost ${i}`;
+            ghostElement.className = 'ghost';
+            ghostElement.style.backgroundColor = GHOST_COLORS[i];
+            const ghostX = i > 1 ? 10 + i : 9 + i;
+            document.getElementById(`${ghostX} 11`).append(ghostElement);
+        }
+    }
+
+    function createEntities() {
+        if (window.player) delete window.player;
+        window.player = new Player(11, 13);
+        const playerElement = document.getElementById('player');
+        document.getElementById(`${player.x} ${player.y}`).append(playerElement);
+
+        if (window.ghosts?.length) delete window.ghosts;
+
+        window.ghosts = [];
+
+        for (let i = 0; i < 4; i++) {
+            const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
+            ghosts.push(ghost);
+            const ghostElement = document.getElementById(`ghost ${i}`);
+            document.getElementById(`${ghost.x} ${ghost.y}`).append(ghostElement);
         }
     }
 
     function startGame() {
         if (started) return;
         started = true;
+        particles = 254;
+        window.gameMap = MAP;
+        createEntities();
+        const hiddenParticles = document.querySelectorAll('.hiddenParticle'); // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
+        for (const hiddenParticle of hiddenParticles) {
+            hiddenParticle.className = 'particle';
+        }
+        document.getElementById('game_status').style.display = 'none';
         window.playerInterval = setInterval(() => {
             updatePlayer();
         }, PLAYER_SPEED);
@@ -215,8 +235,8 @@ window.onload = () => {
             const positionElement = document.getElementById(`${player.x} ${player.y}`);
             const particle = positionElement.getElementsByClassName('particle')[0];
             if (particle) {
-                particle.remove();
-                MAP[player.y][player.x] = 1;
+                particle.className = 'hiddenParticle';
+                window.gameMap[player.y][player.x] = 1;
                 particles--;
                 if (!particles) endGame('win');
             }
@@ -246,5 +266,6 @@ window.onload = () => {
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
         gameStatusElement.style.color = gameStatus === 'win' ? 'green' : 'red';
         document.getElementById('map').append(gameStatusElement);
+        started = false;
     }
 };

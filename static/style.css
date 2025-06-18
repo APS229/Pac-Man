@@ -61,7 +61,10 @@ td {
     background: rgb(32, 32, 131);
 }
 
-#player, .particle, .ghost, #game_status {
+#player,
+.particle,
+.ghost,
+#game_status {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -70,7 +73,8 @@ td {
     margin: auto;
 }
 
-#player, .ghost {
+#player,
+.ghost {
     display: block;
     height: 80%;
     width: 80%;
@@ -80,10 +84,19 @@ td {
     background-color: yellow;
 }
 
-.particle {
+.particle,
+.phiddenParticle {
     height: 25%;
     width: 25%;
     background: white;
+}
+
+.particle {
+    display: block;
+}
+
+.hiddenParticle {
+    display: none;
 }
 
 #game_status {
