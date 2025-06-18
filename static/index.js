@@ -1,7 +1,9 @@
 window.onload = () => {
     const PLAYER_SPEED = 200;
     const GHOST_SPEED = 250;
-    const SEARCH_RADIUS = 7;
+    const PLAYER_SEARCH_RADIUS = 7;
+    const SEARCH_RADIUS_MAX = 10;
+    const SEARCH_RADIUS_MIN = 5;
     const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
     const MAP = [
@@ -112,31 +114,32 @@ window.onload = () => {
         getRandomSpace() {
             let x = 0, y = 0;
             do {
-                x = [-(SEARCH_RADIUS - 1), -(SEARCH_RADIUS - 2), SEARCH_RADIUS - 2, SEARCH_RADIUS - 1][Math.floor(Math.random() * 4)] + this.x;
-                y = [-(SEARCH_RADIUS - 1), -(SEARCH_RADIUS - 2), SEARCH_RADIUS - 2, SEARCH_RADIUS - 1][Math.floor(Math.random() * 4)] + this.y;
-            } while ((x === this.x && y === this.y) || x >= MAP_SIZE || x <= 0 || y >= MAP_SIZE || y <= 0 || !MAP[y][x]);
+                x = Math.floor(Math.random() * MAP_SIZE);
+                y = Math.floor(Math.random() * MAP_SIZE);
+            } while ((x === this.x && y === this.y) || !MAP[y][x]);
             return { x, y };
         }
 
         pathFind(endX, endY) {
-            // Search for the player in a 7x7 radius
-            if (this.x - endX > SEARCH_RADIUS || this.x - endX < -SEARCH_RADIUS || this.y - endY > SEARCH_RADIUS || this.y - endY < -SEARCH_RADIUS) {
+            const graph = new Graph(MAP);
+            const start = graph.grid[this.y][this.x];
+            const end = graph.grid[endY][endX];
+            const steps = astar.search(graph, start, end);
+            if (steps.length > PLAYER_SEARCH_RADIUS) {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
                     this.steps = [];
                 }
-                if (this.steps.length) return;
-                const cords = this.getRandomSpace();
-                endX = cords.x;
-                endY = cords.y;
+                if (this.steps.length) return; // Keep following previous steps if not searching for the player
+                while (this.steps.length > SEARCH_RADIUS_MAX || this.steps.length < SEARCH_RADIUS_MIN) {
+                    const cords = this.getRandomSpace();
+                    this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                }
             }
             else {
                 this.chasingPlayer = true;
+                this.steps = steps;
             }
-            const graph = new Graph(MAP);
-            const start = graph.grid[this.y][this.x];
-            const end = graph.grid[endY][endX];
-            this.steps = astar.search(graph, start, end);
         }
 
         move(playerX, playerY) {
@@ -234,13 +237,13 @@ window.onload = () => {
             const playerElement = document.getElementById('player');
             const positionElement = document.getElementById(`${player.x} ${player.y}`);
             const particle = positionElement.getElementsByClassName('particle')[0];
+            positionElement.append(playerElement);
             if (particle) {
                 particle.className = 'hiddenParticle';
                 window.gameMap[player.y][player.x] = 1;
                 particles--;
                 if (!particles) endGame('win');
             }
-            positionElement.append(playerElement);
         }
     }
 
