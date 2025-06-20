@@ -1,14 +1,14 @@
 window.onload = () => {
-    const PLAYER_SPEED = 200;
-    const GHOST_SPEED = 250;
-    const PLAYER_SEARCH_RADIUS = 7;
-    const SEARCH_RADIUS_MAX = 10;
-    const SEARCH_RADIUS_MIN = 5;
+    const PLAYER_SPEED = 250;
+    const RUN_TIMER = 10000;
+    const PLAYER_SEARCH_DISTANCE = 9;
+    const SEARCH_DISTANCE_MAX = 10;
+    const SEARCH_DISTANCE_MIN = 5;
     const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
     const MAP = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0],
+        [0, 3, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 3, 0],
         [0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0],
         [0, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0],
         [0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0],
@@ -17,7 +17,7 @@ window.onload = () => {
         [0, 2, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 2, 2, 2, 0],
         [0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0],
         [0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0],
-        [0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0],
+        [0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0],
         [2, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 2, 2],
         [0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0],
         [0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0],
@@ -28,7 +28,7 @@ window.onload = () => {
         [0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0],
         [0, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0],
         [0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0],
-        [0, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 0],
+        [0, 3, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 3, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ];
 
@@ -42,16 +42,16 @@ window.onload = () => {
 
         checkMovement(direction) {
             if (direction === 'ArrowUp') {
-                if (!MAP[this.y - 1][this.x] || MAP[this.y - 1][this.x] === 3) return;
+                if (!MAP[this.y - 1][this.x] || MAP[this.y - 1][this.x] === 4) return;
             }
             else if (direction === 'ArrowDown') {
-                if (!MAP[this.y + 1][this.x] || MAP[this.y + 1][this.x] === 3) return;
+                if (!MAP[this.y + 1][this.x] || MAP[this.y + 1][this.x] === 4) return;
             }
             else if (direction === 'ArrowLeft') {
-                if ((this.x !== 0 && !MAP[this.y][this.x - 1]) || MAP[this.y][this.x - 1] === 3) return;
+                if ((this.x !== 0 && !MAP[this.y][this.x - 1]) || MAP[this.y][this.x - 1] === 4) return;
             }
             else if (direction === 'ArrowRight') {
-                if ((this.x !== MAP_SIZE - 1 && !MAP[this.y][this.x + 1]) || MAP[this.y][this.x + 1] === 3) return;
+                if ((this.x !== MAP_SIZE - 1 && !MAP[this.y][this.x + 1]) || MAP[this.y][this.x + 1] === 4) return;
             }
             else return;
             return true;
@@ -111,6 +111,7 @@ window.onload = () => {
             this.num = num;
             this.steps = [];
             this.chasingPlayer = false;
+            this.status = 'hunt';
         }
 
         getRandomSpace() {
@@ -126,22 +127,46 @@ window.onload = () => {
             const graph = new Graph(MAP);
             const start = graph.grid[this.y][this.x];
             const end = graph.grid[endY][endX];
-            const steps = astar.search(graph, start, end);
-            if (steps.length > PLAYER_SEARCH_RADIUS) {
+            if (this.status === 'run') {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
                     this.steps = [];
                 }
-                // Keep following previous steps if not searching for the player
-                if (this.steps.length) return;
-                while (this.steps.length > SEARCH_RADIUS_MAX || this.steps.length < SEARCH_RADIUS_MIN) {
-                    const cords = this.getRandomSpace();
+                const playerSteps = astar.search(graph, end, start);
+                let cords = this.getRandomSpace();
+                if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
+                    do {
+                        cords = this.getRandomSpace();
+                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                    }
+                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN || astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE);
+                }
+                else if (!this.steps.length) {
                     this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN) {
+                        cords = this.getRandomSpace();
+                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                    }
                 }
             }
             else {
-                this.chasingPlayer = true;
-                this.steps = steps;
+                const steps = astar.search(graph, start, end);
+                if (steps.length > PLAYER_SEARCH_DISTANCE) {
+                    if (this.chasingPlayer) {
+                        this.chasingPlayer = false;
+                        this.steps = [];
+                    }
+                    // Keep following previous steps if not searching for the player
+                    if (this.steps.length) return;
+                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN) {
+                        const cords = this.getRandomSpace();
+                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                    }
+                }
+                else {
+                    this.chasingPlayer = true;
+                    this.steps = steps;
+                }
             }
         }
 
@@ -156,6 +181,8 @@ window.onload = () => {
         }
     }
 
+    let ghostSpeed = 250;
+    let ghostStatus = 'hunt';
     let particles = 0;
     createMap();
 
@@ -170,10 +197,10 @@ window.onload = () => {
                 const space = document.createElement('td');
                 space.id = `${j} ${i}`;
                 if (!MAP[i][j]) space.className = 'edge';
-                else if (MAP[i][j] === 3) space.className = 'gate';
-                else if (MAP[i][j] === 2) {
+                else if (MAP[i][j] === 4) space.className = 'gate';
+                else if (MAP[i][j] === 2 || MAP[i][j] === 3) {
                     const particle = document.createElement('div');
-                    particle.className = 'particle';
+                    particle.className = MAP[i][j] === 2 ? 'particle' : 'bigParticle';
                     space.append(particle);
                 }
                 row.append(space);
@@ -222,6 +249,10 @@ window.onload = () => {
         for (const hiddenParticle of hiddenParticles) {
             hiddenParticle.className = 'particle';
         }
+        const hiddenBigParticles = document.querySelectorAll('.hiddenBigParticle');
+        for (const hiddenBigParticle of hiddenBigParticles) {
+            hiddenBigParticle.className = 'bigParticle';
+        }
         document.getElementById('game_status').style.display = 'none';
         window.playerInterval = setInterval(() => {
             updatePlayer();
@@ -229,7 +260,7 @@ window.onload = () => {
 
         window.ghostInterval = setInterval(() => {
             updateGhosts();
-        }, GHOST_SPEED);
+        }, ghostSpeed);
 
         window.onkeydown = event => {
             player.changeDirection(event.key);
@@ -240,13 +271,32 @@ window.onload = () => {
         if (player.move()) {
             const playerElement = document.getElementById('player');
             const positionElement = document.getElementById(`${player.x} ${player.y}`);
-            const particle = positionElement.getElementsByClassName('particle')[0];
+            const particle = positionElement.getElementsByClassName('particle')[0] || positionElement.getElementsByClassName('bigParticle')[0];
             positionElement.append(playerElement);
             if (particle) {
-                particle.className = 'hiddenParticle';
                 window.gameMap[player.y][player.x] = 1;
                 particles--;
-                if (!particles) endGame('win');
+                if (!particles) return endGame('win');
+                if (particle.className === 'bigParticle') {
+                    ghostSpeed = 1000;
+                    for (const ghost of this.ghosts) {
+                        ghost.status = 'run';
+                        ghostStatus = 'run';
+                        const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                        ghostElement.style.backgroundColor = 'grey';
+
+                    }
+                    setTimeout(() => {
+                        ghostSpeed = 250;
+                        for (const ghost of this.ghosts) {
+                            ghost.status = 'hunt';
+                            ghostStatus = 'hunt';
+                            const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                            ghostElement.style.backgroundColor = ghost.color;
+                        }
+                    }, RUN_TIMER);
+                }
+                particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
             }
         }
     }
@@ -259,8 +309,15 @@ window.onload = () => {
             const positionElement = document.getElementById(`${ghost.x} ${ghost.y}`);
             positionElement.append(ghostElement);
             if (ghost.x === player.x && ghost.y === player.y) {
-                endGame('lose');
-                break;
+                if (ghost.status === 'hunt') {
+                    endGame('lose');
+                    break;
+                }
+                else {
+                    ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
+                    ghost.y = 11;
+                    ghost.steps = [];
+                }
             }
         }
     }

@@ -63,6 +63,7 @@ td {
 
 #player,
 .particle,
+.bigParticle,
 .ghost,
 #game_status {
     position: absolute;
@@ -84,6 +85,10 @@ td {
     background-color: yellow;
 }
 
+.ghost {
+    opacity: 1;
+}
+
 .particle,
 .hiddenParticle {
     height: 25%;
@@ -91,11 +96,20 @@ td {
     background: white;
 }
 
-.particle {
+.bigParticle,
+.hiddenBigParticle {
+    height: 40%;
+    width: 40%;
+    background: white;
+}
+
+.particle,
+.bigParticle {
     display: block;
 }
 
-.hiddenParticle {
+.hiddenParticle,
+.hiddenBigParticle {
     display: none;
 }
 
