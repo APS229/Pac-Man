@@ -1,5 +1,5 @@
 window.onload = () => {
-    const PLAYER_SPEED = 250;
+    const PLAYER_SPEED = 200;
     const RUN_TIMER = 10000;
     const PLAYER_SEARCH_DISTANCE = 9;
     const SEARCH_DISTANCE_MAX = 10;
