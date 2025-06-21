@@ -1,5 +1,7 @@
 window.onload = () => {
     const PLAYER_SPEED = 200;
+    const GHOST_HUNT_SPEED = 250;
+    const GHOST_RUN_SPEED = 500;
     const RUN_TIMER = 10000;
     const PLAYER_SEARCH_DISTANCE = 9;
     const SEARCH_DISTANCE_MAX = 10;
@@ -127,51 +129,53 @@ window.onload = () => {
             const graph = new Graph(MAP);
             const start = graph.grid[this.y][this.x];
             const end = graph.grid[endY][endX];
+            let steps = [...this.steps];
             if (this.status === 'run') {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
-                    this.steps = [];
+                    steps = [];
                 }
                 const playerSteps = astar.search(graph, end, start);
                 let cords = this.getRandomSpace();
                 if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
                     do {
                         cords = this.getRandomSpace();
-                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                     }
-                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN || astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE);
+                    while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN || astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE);
                 }
-                else if (!this.steps.length) {
-                    this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN) {
+                else if (!steps.length) {
+                    steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                    while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN) {
                         cords = this.getRandomSpace();
-                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                     }
                 }
+                return steps;
             }
             else {
-                const steps = astar.search(graph, start, end);
-                if (steps.length > PLAYER_SEARCH_DISTANCE) {
+                const nextSteps = astar.search(graph, start, end);
+                if (nextSteps.length > PLAYER_SEARCH_DISTANCE) {
                     if (this.chasingPlayer) {
                         this.chasingPlayer = false;
-                        this.steps = [];
+                        steps = [];
                     }
                     // Keep following previous steps if not searching for the player
-                    if (this.steps.length) return;
-                    while (this.steps.length > SEARCH_DISTANCE_MAX || this.steps.length < SEARCH_DISTANCE_MIN) {
+                    if (steps.length) return;
+                    while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN) {
                         const cords = this.getRandomSpace();
-                        this.steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                     }
+                    return steps;
                 }
                 else {
                     this.chasingPlayer = true;
-                    this.steps = steps;
+                    return nextSteps;
                 }
             }
         }
 
-        move(playerX, playerY) {
-            this.pathFind(playerX, playerY);
+        move() {
             if (this.steps.length) {
                 // MAP uses Y value before X value
                 this.x = this.steps[0].y;
@@ -181,7 +185,7 @@ window.onload = () => {
         }
     }
 
-    let ghostSpeed = 250;
+    let ghostSpeed = GHOST_HUNT_SPEED;
     let ghostStatus = 'hunt';
     let particles = 0;
     createMap();
@@ -254,20 +258,45 @@ window.onload = () => {
             hiddenBigParticle.className = 'bigParticle';
         }
         document.getElementById('game_status').style.display = 'none';
-        window.playerInterval = setInterval(() => {
-            updatePlayer();
-        }, PLAYER_SPEED);
 
-        window.ghostInterval = setInterval(() => {
-            updateGhosts();
-        }, ghostSpeed);
+        requestAnimationFrame(updateGame);
+        updatePlayer();
+        updateGhosts();
 
         window.onkeydown = event => {
             player.changeDirection(event.key);
         }
     }
 
+    function updateGame() {
+        for (const ghost of ghosts) {
+            if (ghost.x === player.x && ghost.y === player.y) {
+                if (ghost.status === 'hunt') return endGame('lose');
+                else {
+                    ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
+                    ghost.y = 11;
+                    ghost.steps = [];
+                }
+            }
+            let steps = ghost.pathFind(player.x, player.y);
+            if (steps) {
+                // let stopMovement = false;
+                // for (const nextGhost of ghosts) {
+                //     if (ghost.num === nextGhost.num) continue;
+                //     if (steps[0].x === nextGhost.x && steps[0].y === nextGhost.y) {
+                //         stopMovement = true;
+                //         break;
+                //     }
+                // }
+                // if (stopMovement)steps = [];
+                ghost.steps = steps;
+            }
+        }
+        requestAnimationFrame(updateGame);
+    }
+
     function updatePlayer() {
+        if (!started) return;
         if (player.move()) {
             const playerElement = document.getElementById('player');
             const positionElement = document.getElementById(`${player.x} ${player.y}`);
@@ -278,16 +307,16 @@ window.onload = () => {
                 particles--;
                 if (!particles) return endGame('win');
                 if (particle.className === 'bigParticle') {
-                    ghostSpeed = 1000;
+                    clearTimeout(window.ghostRunTimer);
+                    ghostSpeed = GHOST_RUN_SPEED;
                     for (const ghost of this.ghosts) {
                         ghost.status = 'run';
                         ghostStatus = 'run';
                         const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                         ghostElement.style.backgroundColor = 'grey';
-
                     }
-                    setTimeout(() => {
-                        ghostSpeed = 250;
+                    window.ghostRunTimer = setTimeout(() => {
+                        ghostSpeed = GHOST_HUNT_SPEED;
                         for (const ghost of this.ghosts) {
                             ghost.status = 'hunt';
                             ghostStatus = 'hunt';
@@ -299,32 +328,27 @@ window.onload = () => {
                 particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
             }
         }
+        window.playerInterval = setTimeout(() => {
+            updatePlayer();
+        }, PLAYER_SPEED);
     }
 
     function updateGhosts() {
-        for (let i = 0; i < 4; i++) {
-            const ghost = ghosts[i];
-            ghost.move(player.x, player.y);
+        if (!started) return;
+        for (const ghost of ghosts) {
+            ghost.move();
             const ghostElement = document.getElementById(`ghost ${ghost.num}`);
             const positionElement = document.getElementById(`${ghost.x} ${ghost.y}`);
             positionElement.append(ghostElement);
-            if (ghost.x === player.x && ghost.y === player.y) {
-                if (ghost.status === 'hunt') {
-                    endGame('lose');
-                    break;
-                }
-                else {
-                    ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
-                    ghost.y = 11;
-                    ghost.steps = [];
-                }
-            }
         }
+        window.ghostInterval = setTimeout(() => {
+            updateGhosts();
+        }, ghostSpeed);
     }
 
     function endGame(gameStatus) {
-        clearInterval(window.playerInterval);
-        clearInterval(window.ghostInterval);
+        clearTimeout(window.playerInterval);
+        clearTimeout(window.ghostInterval);
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
