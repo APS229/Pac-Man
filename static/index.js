@@ -138,11 +138,11 @@ window.onload = () => {
                 const playerSteps = astar.search(graph, end, start);
                 let cords = this.getRandomSpace();
                 if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
-                    do {
+                    for (let i = 0; i < 1000; i++) {
                         cords = this.getRandomSpace();
                         steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        if (steps.length <= SEARCH_DISTANCE_MAX && steps.length > SEARCH_DISTANCE_MIN && astar.search(graph, end, graph.grid[cords.y][cords.x]).length >= PLAYER_SEARCH_DISTANCE) break;
                     }
-                    while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN || astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE);
                 }
                 else if (!steps.length) {
                     steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
