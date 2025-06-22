@@ -113,7 +113,7 @@ window.onload = () => {
             this.num = num;
             this.steps = [];
             this.chasingPlayer = false;
-            this.status = 'hunt';
+            this.phase = 'hunt';
         }
 
         getRandomSpace() {
@@ -130,7 +130,7 @@ window.onload = () => {
             const start = graph.grid[this.y][this.x];
             const end = graph.grid[endY][endX];
             let steps = [...this.steps];
-            if (this.status === 'run') {
+            if (this.phase === 'run') {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
                     steps = [];
@@ -138,11 +138,10 @@ window.onload = () => {
                 const playerSteps = astar.search(graph, end, start);
                 let cords = this.getRandomSpace();
                 if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
-                    for (let i = 0; i < 1000; i++) {
+                    while (astar.search(graph, end, graph.grid[cords.y][cords.x]).length >= PLAYER_SEARCH_DISTANCE) {
                         cords = this.getRandomSpace();
-                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                        if (steps.length <= SEARCH_DISTANCE_MAX && steps.length > SEARCH_DISTANCE_MIN && astar.search(graph, end, graph.grid[cords.y][cords.x]).length >= PLAYER_SEARCH_DISTANCE) break;
                     }
+                    steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                 }
                 else if (!steps.length) {
                     steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
@@ -186,7 +185,6 @@ window.onload = () => {
     }
 
     let ghostSpeed = GHOST_HUNT_SPEED;
-    let ghostStatus = 'hunt';
     let particles = 0;
     createMap();
 
@@ -271,7 +269,7 @@ window.onload = () => {
     function updateGame() {
         for (const ghost of ghosts) {
             if (ghost.x === player.x && ghost.y === player.y) {
-                if (ghost.status === 'hunt') return endGame('lose');
+                if (ghost.phase === 'hunt') return endGame('lose');
                 else {
                     ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
                     ghost.y = 11;
@@ -310,16 +308,14 @@ window.onload = () => {
                     clearTimeout(window.ghostRunTimer);
                     ghostSpeed = GHOST_RUN_SPEED;
                     for (const ghost of this.ghosts) {
-                        ghost.status = 'run';
-                        ghostStatus = 'run';
+                        ghost.phase = 'run';
                         const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                         ghostElement.style.backgroundColor = 'grey';
                     }
                     window.ghostRunTimer = setTimeout(() => {
                         ghostSpeed = GHOST_HUNT_SPEED;
                         for (const ghost of this.ghosts) {
-                            ghost.status = 'hunt';
-                            ghostStatus = 'hunt';
+                            ghost.phase = 'hunt';
                             const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                             ghostElement.style.backgroundColor = ghost.color;
                         }
