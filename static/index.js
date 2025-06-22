@@ -137,9 +137,11 @@ window.onload = () => {
                 }
                 const playerSteps = astar.search(graph, end, start);
                 let cords = this.getRandomSpace();
+                steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                 if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
-                    while (astar.search(graph, end, graph.grid[cords.y][cords.x]).length >= PLAYER_SEARCH_DISTANCE) {
+                    while (astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE || steps.length < SEARCH_DISTANCE_MIN) {
                         cords = this.getRandomSpace();
+                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                     }
                     steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
                 }
@@ -236,6 +238,7 @@ window.onload = () => {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
+            ghostElement.color = ghost.color;
             document.getElementById(`${ghost.x} ${ghost.y}`).append(ghostElement);
         }
     }
