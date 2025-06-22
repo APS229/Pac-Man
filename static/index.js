@@ -230,15 +230,13 @@ window.onload = () => {
         const playerElement = document.getElementById('player');
         document.getElementById(`${player.x} ${player.y}`).append(playerElement);
 
-        if (window.ghosts?.length) delete window.ghosts;
-
         window.ghosts = [];
 
         for (let i = 0; i < 4; i++) {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
-            ghostElement.color = ghost.color;
+            ghostElement.style.backgroundColor = ghost.color;
             document.getElementById(`${ghost.x} ${ghost.y}`).append(ghostElement);
         }
     }
@@ -247,6 +245,7 @@ window.onload = () => {
         if (started) return;
         started = true;
         particles = 254;
+        ghostSpeed = GHOST_HUNT_SPEED;
         window.gameMap = MAP;
         createEntities();
         // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
@@ -270,6 +269,7 @@ window.onload = () => {
     }
 
     function updateGame() {
+        if (!started) return;
         for (const ghost of ghosts) {
             if (ghost.x === player.x && ghost.y === player.y) {
                 if (ghost.phase === 'hunt') return endGame('lose');
@@ -348,6 +348,7 @@ window.onload = () => {
     function endGame(gameStatus) {
         clearTimeout(window.playerInterval);
         clearTimeout(window.ghostInterval);
+        clearTimeout(window.ghostRunTimer);
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
