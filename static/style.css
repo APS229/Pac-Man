@@ -61,10 +61,8 @@ td {
     background: rgb(32, 32, 131);
 }
 
-#player,
 .particle,
 .bigParticle,
-.ghost,
 #game_status {
     position: absolute;
     top: 0;
@@ -77,12 +75,20 @@ td {
 #player,
 .ghost {
     display: block;
-    height: 80%;
-    width: 80%;
+    height: 24px;
+    width: 24px;
+    margin: 3px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition-timing-function: linear;
 }
 
 #player {
     background-color: yellow;
+    transition-duration: 0.25s;
 }
 
 .ghost {

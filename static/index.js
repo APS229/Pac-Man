@@ -2,12 +2,15 @@ window.onload = () => {
     const PLAYER_SPEED = 200;
     const GHOST_HUNT_SPEED = 250;
     const GHOST_RUN_SPEED = 500;
+    const GHOST_COUNT = 4;
     const RUN_TIMER = 10000;
     const PLAYER_SEARCH_DISTANCE = 9;
     const SEARCH_DISTANCE_MAX = 10;
     const SEARCH_DISTANCE_MIN = 5;
     const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
+    const MAP_DIMENSION = 690;
+    const SPACE_SIZE = MAP_DIMENSION / MAP_SIZE;
     const MAP = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 3, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 3, 0],
@@ -38,8 +41,17 @@ window.onload = () => {
         constructor(positionX, positionY) {
             this.x = positionX;
             this.y = positionY;
-            this.currentDirection = '';
+        }
+    }
+
+    class Player extends Entity {
+        constructor(positionX, positionY) {
+            super(positionX, positionY);
+            this.newX = this.x;
+            this.newY = this.y;
+            this.currentDirection = 'ArrowRight';
             this.nextDirection = '';
+            this.steps = [];
         }
 
         checkMovement(direction) {
@@ -59,50 +71,47 @@ window.onload = () => {
             return true;
         }
 
-        move() {
-            switch (this.currentDirection) {
-                case 'ArrowUp':
-                    this.y--;
-                    break;
-                case 'ArrowDown':
-                    this.y++;
-                    break;
-                case 'ArrowLeft':
-                    if (this.x === 0) {
-                        // teleport to right side
-                        this.x = MAP_SIZE - 1;
-                        break;
-                    }
-                    this.x--;
-                    break;
-                case 'ArrowRight':
-                    if (this.x === MAP_SIZE - 1) {
-                        // teleport to left side
-                        this.x = 0;
-                        break;
-                    }
-                    this.x++;
-                    break;
-            }
-        }
-    }
-
-    class Player extends Entity {
-        constructor(positionX, positionY) {
-            super(positionX, positionY);
-            this.currentDirection = 'ArrowRight';
-            this.steps = [];
+        changeDirection(direction) {
+            this.nextDirection = direction;
         }
 
-        move() {
+        canMove() {
             if (this.checkMovement(this.nextDirection)) this.currentDirection = this.nextDirection;
             if (!this.checkMovement(this.currentDirection)) return;
-            super.move();
+            this.findNextSpot();
             return true;
         }
 
-        changeDirection(direction) {
-            this.nextDirection = direction;
+        findNextSpot() {
+            switch (this.currentDirection) {
+                case 'ArrowUp':
+                    this.newY--;
+                    break;
+                case 'ArrowDown':
+                    this.newY++;
+                    break;
+                case 'ArrowLeft':
+                    if (this.newX === 0) {
+                        // teleport to right side
+                        this.newX = MAP_SIZE - 1;
+                        break;
+                    }
+                    this.newX--;
+                    break;
+                case 'ArrowRight':
+                    if (this.newX === MAP_SIZE - 1) {
+                        // teleport to left side
+                        this.newX = 0;
+                        break;
+                    }
+                    this.newX++;
+                    break;
+            }
+        }
+
+        move() {
+            this.x = this.newX;
+            this.y = this.newY;
         }
     }
 
@@ -113,6 +122,7 @@ window.onload = () => {
             this.num = num;
             this.steps = [];
             this.chasingPlayer = false;
+            this.dead = false;
             this.phase = 'hunt';
         }
 
@@ -162,7 +172,7 @@ window.onload = () => {
                         steps = [];
                     }
                     // Keep following previous steps if not searching for the player
-                    if (steps.length) return;
+                    if (steps.length) return steps;
                     while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN) {
                         const cords = this.getRandomSpace();
                         steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
@@ -183,6 +193,7 @@ window.onload = () => {
                 this.y = this.steps[0].x;
                 this.steps.shift();
             }
+            this.dead = false;
         }
     }
 
@@ -213,31 +224,40 @@ window.onload = () => {
         }
         const playerElement = document.createElement('div');
         playerElement.id = 'player';
-        document.getElementById(`11 13`).append(playerElement);
-        for (let i = 0; i < 4; i++) {
+        playerElement.style.left = (SPACE_SIZE * 11) + 'px';
+        playerElement.style.top = (SPACE_SIZE * 13) + 'px';
+        document.getElementById('map').append(playerElement);
+        for (let i = 0; i < GHOST_COUNT; i++) {
             const ghostElement = document.createElement('div');
             ghostElement.id = `ghost ${i}`;
             ghostElement.className = 'ghost';
             ghostElement.style.backgroundColor = GHOST_COLORS[i];
             const ghostX = i > 1 ? 10 + i : 9 + i;
-            document.getElementById(`${ghostX} 11`).append(ghostElement);
+            ghostElement.style.left = (ghostX * SPACE_SIZE) + 'px';
+            ghostElement.style.top = (11 * SPACE_SIZE) + 'px';
+            ghostElement.style.backgroundColor = GHOST_COLORS[i];
+            document.getElementById('map').append(ghostElement);
         }
     }
 
     function createEntities() {
-        if (window.player) delete window.player;
+        delete window.player;
         window.player = new Player(11, 13);
         const playerElement = document.getElementById('player');
-        document.getElementById(`${player.x} ${player.y}`).append(playerElement);
+        playerElement.style.transitionProperty = 'none';
+        playerElement.style.left = (11 * SPACE_SIZE) + 'px';
+        playerElement.style.top = (13 * SPACE_SIZE) + 'px';
 
         window.ghosts = [];
 
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < GHOST_COUNT; i++) {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
+            ghostElement.style.transitionProperty = 'none';
             ghostElement.style.backgroundColor = ghost.color;
-            document.getElementById(`${ghost.x} ${ghost.y}`).append(ghostElement);
+            ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
+            ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
         }
     }
 
@@ -260,95 +280,98 @@ window.onload = () => {
         document.getElementById('game_status').style.display = 'none';
 
         requestAnimationFrame(updateGame);
-        updatePlayer();
-        updateGhosts();
 
         window.onkeydown = event => {
             player.changeDirection(event.key);
         }
     }
 
-    function updateGame() {
+    let lastPlayerMove = 0;
+    let lastGhostMove = 0;
+    let ghostRun = 0;
+    function updateGame(timestamp) {
         if (!started) return;
+        if (timestamp - lastPlayerMove >= PLAYER_SPEED) {
+            if (player.canMove()) {
+                const offsetX = Math.abs(player.newX - player.x), offsetY = Math.abs(player.newY - player.y);
+                const playerElement = document.getElementById('player');
+                if (offsetX === 1 || offsetY === 1) {
+                    offsetX ? playerElement.style.transitionProperty = 'left' : playerElement.style.transitionProperty = 'top';
+                }
+                else {
+                    playerElement.style.transitionProperty = 'none';
+                }
+                player.move();
+                playerElement.style.left = (player.x * SPACE_SIZE) + 'px';
+                playerElement.style.top = (player.y * SPACE_SIZE) + 'px';
+                const positionElement = document.getElementById(`${player.x} ${player.y}`);
+
+                const particle = positionElement.getElementsByClassName('particle')[0] || positionElement.getElementsByClassName('bigParticle')[0];
+                if (particle) {
+                    // Player eats and removes the particle stepped on
+                    window.gameMap[player.y][player.x] = 1;
+                    particles--;
+                    if (!particles) return endGame('win');
+                    if (particle.className === 'bigParticle') {
+                        ghostSpeed = GHOST_RUN_SPEED;
+                        ghostRun = 0;
+                        for (const ghost of ghosts) {
+                            ghost.phase = 'run';
+                            const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                            ghostElement.style.backgroundColor = 'grey';
+                        }
+                    }
+                    particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
+                }
+            }
+            lastPlayerMove = timestamp;
+        }
+
+        if (timestamp - lastGhostMove >= ghostSpeed) {
+            const ghostDiff = timestamp - lastGhostMove;
+
+            for (const ghost of ghosts) {
+                ghost.steps = ghost.pathFind(player.x, player.y);
+                const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                const offsetX = ghost.steps[0].y - ghost.x, offsetY = ghost.steps[0].x - ghost.y;
+                if (!ghost.dead && (offsetX || offsetY)) {
+                    offsetX ? ghostElement.style.transitionProperty = 'left' : ghostElement.style.transitionProperty = 'top';
+                    ghostElement.style.transitionDuration = (ghostSpeed / 1000) + 's';
+                }
+                else {
+                    ghostElement.style.transitionProperty = 'none';
+                }
+                ghost.move();
+                ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
+                ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
+            }
+            lastGhostMove = timestamp;
+
+            if (ghostSpeed === GHOST_RUN_SPEED) {
+                ghostRun += ghostDiff;
+                if (ghostRun >= RUN_TIMER) {
+                    ghostSpeed = GHOST_HUNT_SPEED;
+                    for (const ghost of ghosts) {
+                        ghost.phase = 'hunt';
+                        const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                        ghostElement.style.backgroundColor = ghost.color;
+                    }
+                }
+            }
+        }
+
         for (const ghost of ghosts) {
             if (ghost.x === player.x && ghost.y === player.y) {
                 if (ghost.phase === 'hunt') return endGame('lose');
-                else {
-                    ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
-                    ghost.y = 11;
-                    ghost.steps = [];
-                }
-            }
-            let steps = ghost.pathFind(player.x, player.y);
-            if (steps) {
-                // let stopMovement = false;
-                // for (const nextGhost of ghosts) {
-                //     if (ghost.num === nextGhost.num) continue;
-                //     if (steps[0].x === nextGhost.x && steps[0].y === nextGhost.y) {
-                //         stopMovement = true;
-                //         break;
-                //     }
-                // }
-                // if (stopMovement)steps = [];
-                ghost.steps = steps;
+                ghost.dead = true;
+                ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
+                ghost.y = 11;
             }
         }
         requestAnimationFrame(updateGame);
     }
 
-    function updatePlayer() {
-        if (!started) return;
-        if (player.move()) {
-            const playerElement = document.getElementById('player');
-            const positionElement = document.getElementById(`${player.x} ${player.y}`);
-            const particle = positionElement.getElementsByClassName('particle')[0] || positionElement.getElementsByClassName('bigParticle')[0];
-            positionElement.append(playerElement);
-            if (particle) {
-                window.gameMap[player.y][player.x] = 1;
-                particles--;
-                if (!particles) return endGame('win');
-                if (particle.className === 'bigParticle') {
-                    clearTimeout(window.ghostRunTimer);
-                    ghostSpeed = GHOST_RUN_SPEED;
-                    for (const ghost of this.ghosts) {
-                        ghost.phase = 'run';
-                        const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                        ghostElement.style.backgroundColor = 'grey';
-                    }
-                    window.ghostRunTimer = setTimeout(() => {
-                        ghostSpeed = GHOST_HUNT_SPEED;
-                        for (const ghost of this.ghosts) {
-                            ghost.phase = 'hunt';
-                            const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                            ghostElement.style.backgroundColor = ghost.color;
-                        }
-                    }, RUN_TIMER);
-                }
-                particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
-            }
-        }
-        window.playerInterval = setTimeout(() => {
-            updatePlayer();
-        }, PLAYER_SPEED);
-    }
-
-    function updateGhosts() {
-        if (!started) return;
-        for (const ghost of ghosts) {
-            ghost.move();
-            const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-            const positionElement = document.getElementById(`${ghost.x} ${ghost.y}`);
-            positionElement.append(ghostElement);
-        }
-        window.ghostInterval = setTimeout(() => {
-            updateGhosts();
-        }, ghostSpeed);
-    }
-
     function endGame(gameStatus) {
-        clearTimeout(window.playerInterval);
-        clearTimeout(window.ghostInterval);
-        clearTimeout(window.ghostRunTimer);
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
