@@ -94,19 +94,19 @@ td {
 .hiddenParticle {
     height: 25%;
     width: 25%;
-    background: white;
 }
 
 .bigParticle,
 .hiddenBigParticle {
     height: 45%;
     width: 45%;
-    background: white;
 }
 
 .particle,
 .bigParticle {
     display: block;
+    background: white;
+    border-radius: 10px;
 }
 
 .hiddenParticle,
