@@ -1,13 +1,14 @@
 window.onload = () => {
-    const PLAYER_SPEED = 200;
-    const GHOST_HUNT_SPEED = 250;
-    const GHOST_RUN_SPEED = 500;
+    const PLAYER_SPEED = 266;
+    const PLAYER_SPAWN_X = 11;
+    const PLAYER_SPAWN_Y = 13;
+    const PLAYER_SEARCH_DISTANCE = 9;
+    const GHOST_HUNT_SPEED = 333;
+    const GHOST_RUN_SPEED = 532;
     const GHOST_COUNT = 4;
     const RUN_TIMER = 10000;
-    const PLAYER_SEARCH_DISTANCE = 9;
     const SEARCH_DISTANCE_MAX = 10;
     const SEARCH_DISTANCE_MIN = 5;
-    const GHOST_COLORS = ['red', 'green', 'orange', 'pink'];
     const MAP_SIZE = 23;
     const MAP_DIMENSION = 690;
     const SPACE_SIZE = MAP_DIMENSION / MAP_SIZE;
@@ -25,7 +26,7 @@ window.onload = () => {
         [0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0],
         [2, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 2, 2],
         [0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0],
-        [0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0],
+        [0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 1, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0],
         [0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0],
         [0, 2, 2, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 2, 2, 2, 0],
         [0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0],
@@ -116,9 +117,8 @@ window.onload = () => {
     }
 
     class Ghost extends Entity {
-        constructor(positionX, positionY, color, num) {
+        constructor(positionX, positionY, num) {
             super(positionX, positionY);
-            this.color = color;
             this.num = num;
             this.steps = [];
             this.chasingPlayer = false;
@@ -187,12 +187,11 @@ window.onload = () => {
         }
 
         move() {
-            if (this.steps.length) {
-                // MAP uses Y value before X value
-                this.x = this.steps[0].y;
-                this.y = this.steps[0].x;
-                this.steps.shift();
-            }
+            // MAP uses Y value before X value
+            this.x = this.steps[0].y;
+            this.y = this.steps[0].x;
+            this.steps.shift();
+
             this.dead = false;
         }
     }
@@ -222,40 +221,39 @@ window.onload = () => {
             }
             mapElement.append(row);
         }
-        const playerElement = document.createElement('div');
+        const playerElement = document.createElement('img');
         playerElement.id = 'player';
-        playerElement.style.left = (SPACE_SIZE * 11) + 'px';
-        playerElement.style.top = (SPACE_SIZE * 13) + 'px';
+        playerElement.setAttribute('src', 'images/pacman/pacman.png');
+        playerElement.style.left = (SPACE_SIZE * PLAYER_SPAWN_X) + 'px';
+        playerElement.style.top = (SPACE_SIZE * PLAYER_SPAWN_Y) + 'px';
         document.getElementById('map').append(playerElement);
         for (let i = 0; i < GHOST_COUNT; i++) {
-            const ghostElement = document.createElement('div');
+            const ghostElement = document.createElement('img');
             ghostElement.id = `ghost ${i}`;
             ghostElement.className = 'ghost';
-            ghostElement.style.backgroundColor = GHOST_COLORS[i];
+            ghostElement.setAttribute('src', `images/ghosts/${i + 1}.png`);
             const ghostX = i > 1 ? 10 + i : 9 + i;
             ghostElement.style.left = (ghostX * SPACE_SIZE) + 'px';
             ghostElement.style.top = (11 * SPACE_SIZE) + 'px';
-            ghostElement.style.backgroundColor = GHOST_COLORS[i];
             document.getElementById('map').append(ghostElement);
         }
     }
 
     function createEntities() {
         delete window.player;
-        window.player = new Player(11, 13);
+        window.player = new Player(PLAYER_SPAWN_X, PLAYER_SPAWN_Y);
         const playerElement = document.getElementById('player');
         playerElement.style.transitionProperty = 'none';
-        playerElement.style.left = (11 * SPACE_SIZE) + 'px';
-        playerElement.style.top = (13 * SPACE_SIZE) + 'px';
+        playerElement.style.left = (PLAYER_SPAWN_X * SPACE_SIZE) + 'px';
+        playerElement.style.top = (PLAYER_SPAWN_Y * SPACE_SIZE) + 'px';
 
         window.ghosts = [];
 
         for (let i = 0; i < GHOST_COUNT; i++) {
-            const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, GHOST_COLORS[i], i);
+            const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, i);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
             ghostElement.style.transitionProperty = 'none';
-            ghostElement.style.backgroundColor = ghost.color;
             ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
             ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
         }
@@ -264,7 +262,7 @@ window.onload = () => {
     function startGame() {
         if (started) return;
         started = true;
-        particles = 254;
+        particles = 253;
         ghostSpeed = GHOST_HUNT_SPEED;
         window.gameMap = MAP;
         createEntities();
@@ -277,6 +275,8 @@ window.onload = () => {
         for (const hiddenBigParticle of hiddenBigParticles) {
             hiddenBigParticle.className = 'bigParticle';
         }
+        const playerElement = document.getElementById('player');
+        playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
         document.getElementById('game_status').style.display = 'none';
 
         requestAnimationFrame(updateGame);
@@ -304,6 +304,20 @@ window.onload = () => {
                 player.move();
                 playerElement.style.left = (player.x * SPACE_SIZE) + 'px';
                 playerElement.style.top = (player.y * SPACE_SIZE) + 'px';
+                switch (player.currentDirection) {
+                    case 'ArrowRight':
+                        playerElement.style.rotate = 'none';
+                        break;
+                    case 'ArrowDown':
+                        playerElement.style.rotate = '90deg';
+                        break;
+                    case 'ArrowLeft':
+                        playerElement.style.rotate = '180deg';
+                        break;
+                    case 'ArrowUp':
+                        playerElement.style.rotate = '270deg';
+                        break;
+                }
                 const positionElement = document.getElementById(`${player.x} ${player.y}`);
 
                 const particle = positionElement.getElementsByClassName('particle')[0] || positionElement.getElementsByClassName('bigParticle')[0];
@@ -318,7 +332,7 @@ window.onload = () => {
                         for (const ghost of ghosts) {
                             ghost.phase = 'run';
                             const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                            ghostElement.style.backgroundColor = 'grey';
+                            ghostElement.setAttribute('src', 'images/ghosts/run.png');
                         }
                     }
                     particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
@@ -332,18 +346,26 @@ window.onload = () => {
 
             for (const ghost of ghosts) {
                 ghost.steps = ghost.pathFind(player.x, player.y);
-                const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                const offsetX = ghost.steps[0].y - ghost.x, offsetY = ghost.steps[0].x - ghost.y;
-                if (!ghost.dead && (offsetX || offsetY)) {
-                    offsetX ? ghostElement.style.transitionProperty = 'left' : ghostElement.style.transitionProperty = 'top';
-                    ghostElement.style.transitionDuration = (ghostSpeed / 1000) + 's';
+                if (ghost.steps.length) {
+                    const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                    const offsetX = ghost.steps[0].y - ghost.x, offsetY = ghost.steps[0].x - ghost.y;
+                    if (!ghost.dead && (offsetX || offsetY)) {
+                        if (offsetX) {
+                            ghostElement.style.transitionProperty = 'left';
+                            ghostElement.style.transform = `scaleX(${-offsetX})`;
+                        }
+                        else {
+                            ghostElement.style.transitionProperty = 'top';
+                        }
+                        ghostElement.style.transitionDuration = (ghostSpeed / 1000) + 's';
+                    }
+                    else {
+                        ghostElement.style.transitionProperty = 'none';
+                    }
+                    ghost.move();
+                    ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
+                    ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
                 }
-                else {
-                    ghostElement.style.transitionProperty = 'none';
-                }
-                ghost.move();
-                ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
-                ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
             }
             lastGhostMove = timestamp;
 
@@ -354,7 +376,7 @@ window.onload = () => {
                     for (const ghost of ghosts) {
                         ghost.phase = 'hunt';
                         const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                        ghostElement.style.backgroundColor = ghost.color;
+                        ghostElement.setAttribute('src', `images/ghosts/${ghost.num + 1}.png`);
                     }
                 }
             }
@@ -372,6 +394,8 @@ window.onload = () => {
     }
 
     function endGame(gameStatus) {
+        const playerElement = document.getElementById('player');
+        playerElement.setAttribute('src', 'images/pacman/pacman.png');
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";

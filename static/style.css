@@ -87,12 +87,7 @@ td {
 }
 
 #player {
-    background-color: yellow;
     transition-duration: 0.25s;
-}
-
-.ghost {
-    opacity: 1;
 }
 
 .particle,
