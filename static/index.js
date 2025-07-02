@@ -6,7 +6,8 @@ window.onload = () => {
     const GHOST_HUNT_SPEED = 333;
     const GHOST_RUN_SPEED = 532;
     const GHOST_COUNT = 4;
-    const RUN_TIMER = 10000;
+    const SPAWN_TIMER = 5000;
+    const RUN_TIMER = 6000;
     const SEARCH_DISTANCE_MAX = 10;
     const SEARCH_DISTANCE_MIN = 5;
     const MAP_SIZE = 23;
@@ -37,6 +38,8 @@ window.onload = () => {
         [0, 3, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 3, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ];
+
+    window.spawnTimer = [];
 
     class Entity {
         constructor(positionX, positionY) {
@@ -124,6 +127,20 @@ window.onload = () => {
             this.chasingPlayer = false;
             this.dead = false;
             this.phase = 'hunt';
+            this.spawned = false;
+            this.grid = [];
+            for (let i = 0; i < MAP_SIZE; i++) {
+                this.grid[i] = [...MAP[i]];
+            }
+        }
+
+        spawn() {
+            const graph = new Graph(this.grid);
+            const start = graph.grid[this.y][this.x];
+            // space above the gate
+            const end = graph.grid[9][11];
+            this.steps = astar.search(graph, start, end);
+            this.dead = false;
         }
 
         getRandomSpace() {
@@ -136,10 +153,11 @@ window.onload = () => {
         }
 
         pathFind(endX, endY) {
-            const graph = new Graph(MAP);
+            if (!this.spawned) return this.steps;
+            let steps = [...this.steps];
+            const graph = new Graph(this.grid);
             const start = graph.grid[this.y][this.x];
             const end = graph.grid[endY][endX];
-            let steps = [...this.steps];
             if (this.phase === 'run') {
                 if (this.chasingPlayer) {
                     this.chasingPlayer = false;
@@ -192,7 +210,22 @@ window.onload = () => {
             this.y = this.steps[0].x;
             this.steps.shift();
 
-            this.dead = false;
+            if (!this.steps.length && !this.spawned) {
+                this.spawned = true;
+                this.grid[10][11] = 0;
+            }
+        }
+
+        die() {
+            this.steps = [];
+            this.dead = true;
+            this.spawned = false;
+            this.grid[10][11] = 4;
+            this.x = this.num > 1 ? 10 + this.num : 9 + this.num;
+            this.y = 11;
+            window.spawnTimer[this.num] = setTimeout(() => {
+                this.spawn();
+            }, SPAWN_TIMER);
         }
     }
 
@@ -246,16 +279,23 @@ window.onload = () => {
         playerElement.style.transitionProperty = 'none';
         playerElement.style.left = (PLAYER_SPAWN_X * SPACE_SIZE) + 'px';
         playerElement.style.top = (PLAYER_SPAWN_Y * SPACE_SIZE) + 'px';
+        playerElement.style.rotate = 'none';
+        playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
 
         window.ghosts = [];
 
         for (let i = 0; i < GHOST_COUNT; i++) {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, i);
+            if (i === 0) ghost.spawn();
+            else window.spawnTimer[i] = setTimeout(() => {
+                ghost.spawn();
+            }, SPAWN_TIMER);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
             ghostElement.style.transitionProperty = 'none';
             ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
             ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
+            ghostElement.style.transform = 'none';
         }
     }
 
@@ -264,7 +304,6 @@ window.onload = () => {
         started = true;
         particles = 253;
         ghostSpeed = GHOST_HUNT_SPEED;
-        window.gameMap = MAP;
         createEntities();
         // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
         const hiddenParticles = document.querySelectorAll('.hiddenParticle');
@@ -275,8 +314,6 @@ window.onload = () => {
         for (const hiddenBigParticle of hiddenBigParticles) {
             hiddenBigParticle.className = 'bigParticle';
         }
-        const playerElement = document.getElementById('player');
-        playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
         document.getElementById('game_status').style.display = 'none';
 
         requestAnimationFrame(updateGame);
@@ -323,7 +360,6 @@ window.onload = () => {
                 const particle = positionElement.getElementsByClassName('particle')[0] || positionElement.getElementsByClassName('bigParticle')[0];
                 if (particle) {
                     // Player eats and removes the particle stepped on
-                    window.gameMap[player.y][player.x] = 1;
                     particles--;
                     if (!particles) return endGame('win');
                     if (particle.className === 'bigParticle') {
@@ -382,25 +418,34 @@ window.onload = () => {
             }
         }
 
+        // ghost and player collision
         for (const ghost of ghosts) {
             if (ghost.x === player.x && ghost.y === player.y) {
                 if (ghost.phase === 'hunt') return endGame('lose');
-                ghost.dead = true;
-                ghost.x = ghost.num > 1 ? 10 + ghost.num : 9 + ghost.num;
-                ghost.y = 11;
+
+                ghost.die();
+                const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                ghostElement.style.transitionProperty = 'none';
+                ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
+                ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
+
             }
         }
         requestAnimationFrame(updateGame);
     }
 
     function endGame(gameStatus) {
+        for (const timer of spawnTimer) clearTimeout(timer);
+
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman.png');
+
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
         gameStatusElement.style.color = gameStatus === 'win' ? 'green' : 'red';
         document.getElementById('map').append(gameStatusElement);
+
         started = false;
     }
 };
