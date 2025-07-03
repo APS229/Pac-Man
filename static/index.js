@@ -128,6 +128,7 @@ window.onload = () => {
             this.dead = false;
             this.phase = 'hunt';
             this.spawned = false;
+            this.runDirection = '';
             this.grid = [];
             for (let i = 0; i < MAP_SIZE; i++) {
                 this.grid[i] = [...MAP[i]];
@@ -152,6 +153,24 @@ window.onload = () => {
             return { x, y };
         }
 
+        getNextRunSpot(graph) {
+            let steps = [];
+            switch (this.runDirection) {
+                case 'right':
+                    steps = [graph.grid[this.y][this.x + 1]]
+                    break;
+                case 'left':
+                    steps = [graph.grid[this.y][this.x - 1]]
+                    break;
+                case 'down':
+                    steps = [graph.grid[this.y + 1][this.x]]
+                    break;
+                case 'up':
+                    steps = [graph.grid[this.y - 1][this.x]];
+                    break;
+            }
+            return steps;
+        }
         pathFind(endX, endY) {
             if (!this.spawned) return this.steps;
             let steps = [...this.steps];
@@ -159,32 +178,25 @@ window.onload = () => {
             const start = graph.grid[this.y][this.x];
             const end = graph.grid[endY][endX];
             if (this.phase === 'run') {
-                if (this.chasingPlayer) {
-                    this.chasingPlayer = false;
-                    steps = [];
+                const directions = ['right', 'left', 'down', 'up'];
+                if (!this.runDirection) {
+                    this.runDirection = directions[Math.floor(Math.random() * 4)];
                 }
-                const playerSteps = astar.search(graph, end, start);
-                let cords = this.getRandomSpace();
-                steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                if (playerSteps.length < PLAYER_SEARCH_DISTANCE) {
-                    while (astar.search(graph, end, graph.grid[cords.y][cords.x]).length < PLAYER_SEARCH_DISTANCE || steps.length < SEARCH_DISTANCE_MIN) {
-                        cords = this.getRandomSpace();
-                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                    }
-                    steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                steps = this.getNextRunSpot(graph);
+
+                if (!this.num) console.log(steps[0]);
+                while (!steps[0]?.weight) {
+                    this.runDirection = directions[Math.floor(Math.random() * 4)];
+                    steps = this.getNextRunSpot(graph);
                 }
-                else if (!steps.length) {
-                    steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                    while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN) {
-                        cords = this.getRandomSpace();
-                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
-                    }
-                }
+                this.chasingPlayer = false;
                 return steps;
             }
             else {
+                this.runDirection = '';
                 const nextSteps = astar.search(graph, start, end);
-                if (nextSteps.length > PLAYER_SEARCH_DISTANCE) {
+                // if num = 0 AKA red ghost, it will always chase the player
+                if (nextSteps.length > PLAYER_SEARCH_DISTANCE && this.num) {
                     if (this.chasingPlayer) {
                         this.chasingPlayer = false;
                         steps = [];
