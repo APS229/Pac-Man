@@ -157,13 +157,15 @@ window.onload = () => {
             let steps = [];
             switch (this.runDirection) {
                 case 'right':
-                    steps = [graph.grid[this.y][this.x + 1]]
+                    const rightX = this.y === 11 && this.x === MAP_SIZE - 1 ? 0 : this.x + 1; 
+                    steps = [graph.grid[this.y][rightX]];
                     break;
                 case 'left':
-                    steps = [graph.grid[this.y][this.x - 1]]
+                    const leftX = this.y === 11 && this.x === 0 ? MAP_SIZE - 1 : this.x - 1; 
+                    steps = [graph.grid[this.y][leftX]];
                     break;
                 case 'down':
-                    steps = [graph.grid[this.y + 1][this.x]]
+                    steps = [graph.grid[this.y + 1][this.x]];
                     break;
                 case 'up':
                     steps = [graph.grid[this.y - 1][this.x]];
@@ -179,12 +181,9 @@ window.onload = () => {
             const end = graph.grid[endY][endX];
             if (this.phase === 'run') {
                 const directions = ['right', 'left', 'down', 'up'];
-                if (!this.runDirection) {
-                    this.runDirection = directions[Math.floor(Math.random() * 4)];
-                }
-                steps = this.getNextRunSpot(graph);
+                if (!this.runDirection) this.runDirection = directions[Math.floor(Math.random() * 4)];
 
-                if (!this.num) console.log(steps[0]);
+                steps = this.getNextRunSpot(graph);
                 while (!steps[0]?.weight) {
                     this.runDirection = directions[Math.floor(Math.random() * 4)];
                     steps = this.getNextRunSpot(graph);
@@ -195,17 +194,50 @@ window.onload = () => {
             else {
                 this.runDirection = '';
                 const nextSteps = astar.search(graph, start, end);
-                // if num = 0 AKA red ghost, it will always chase the player
-                if (nextSteps.length > PLAYER_SEARCH_DISTANCE && this.num) {
+                if (nextSteps.length > PLAYER_SEARCH_DISTANCE) {
+                    let maxSearchDistance = PLAYER_SEARCH_DISTANCE;
+                    const leftTP = graph.grid[11][0], rightTP = graph.grid[11][22];
+                    const stepsToLeftTP = astar.search(graph, start, leftTP);
+                    const stepsToRightTP = astar.search(graph, start, rightTP);
+                    const closestTPSteps = stepsToLeftTP.length > stepsToRightTP.length ? stepsToRightTP : stepsToLeftTP;
+                    const oppositeTP = stepsToLeftTP.length > stepsToRightTP.length ? leftTP : rightTP;
+                    // if num = 0 AKA red ghost, it will always chase the player
+                    if (!this.num || closestTPSteps.length <= PLAYER_SEARCH_DISTANCE) {
+                        // +1 step to travel to other TP space
+                        maxSearchDistance -= closestTPSteps.length + 1;
+                        if (!this.num || maxSearchDistance) {
+                            // same logic as closestTPSteps but we pick the other TP space
+                            const stepsTPToPlayer = astar.search(graph, oppositeTP, end);
+                            if (!this.num || stepsTPToPlayer.length <= maxSearchDistance) {
+                                closestTPSteps.push(oppositeTP);
+                                steps = closestTPSteps.concat(stepsTPToPlayer);
+                                if (!this.num && steps.length >= nextSteps.length) return nextSteps;
+                                return steps;
+                            }
+                        }
+                    }
                     if (this.chasingPlayer) {
                         this.chasingPlayer = false;
                         steps = [];
                     }
                     // Keep following previous steps if not searching for the player
                     if (steps.length) return steps;
+
+                    maxSearchDistance = SEARCH_DISTANCE_MAX;
+                    if (closestTPSteps.length < maxSearchDistance) maxSearchDistance -= closestTPSteps.length + 1;
+
                     while (steps.length > SEARCH_DISTANCE_MAX || steps.length < SEARCH_DISTANCE_MIN) {
                         const cords = this.getRandomSpace();
-                        steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        const stepsTPToCords = astar.search(graph, oppositeTP, graph.grid[cords.y][cords.x]);
+                        if (maxSearchDistance && stepsTPToCords.length <= maxSearchDistance) {
+                            if (stepsTPToCords.length <= maxSearchDistance) {
+                                closestTPSteps.push(oppositeTP);
+                                steps = closestTPSteps.concat(stepsTPToCords);
+                            }
+                        }
+                        else {
+                            steps = astar.search(graph, start, graph.grid[cords.y][cords.x]);
+                        }
                     }
                     return steps;
                 }
@@ -396,8 +428,10 @@ window.onload = () => {
                 ghost.steps = ghost.pathFind(player.x, player.y);
                 if (ghost.steps.length) {
                     const ghostElement = document.getElementById(`ghost ${ghost.num}`);
-                    const offsetX = ghost.steps[0].y - ghost.x, offsetY = ghost.steps[0].x - ghost.y;
-                    if (!ghost.dead && (offsetX || offsetY)) {
+
+                    // offsetX can be 22/-22 while going through TP
+                    const offsetX = Math.abs(ghost.steps[0].y - ghost.x), offsetY = ghost.steps[0].x - ghost.y;
+                    if (!ghost.dead && (offsetX === 1 || offsetY)) {
                         if (offsetX) {
                             ghostElement.style.transitionProperty = 'left';
                             ghostElement.style.transform = `scaleX(${-offsetX})`;
