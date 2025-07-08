@@ -157,11 +157,11 @@ window.onload = () => {
             let steps = [];
             switch (this.runDirection) {
                 case 'right':
-                    const rightX = this.y === 11 && this.x === MAP_SIZE - 1 ? 0 : this.x + 1; 
+                    const rightX = this.y === 11 && this.x === MAP_SIZE - 1 ? 0 : this.x + 1;
                     steps = [graph.grid[this.y][rightX]];
                     break;
                 case 'left':
-                    const leftX = this.y === 11 && this.x === 0 ? MAP_SIZE - 1 : this.x - 1; 
+                    const leftX = this.y === 11 && this.x === 0 ? MAP_SIZE - 1 : this.x - 1;
                     steps = [graph.grid[this.y][leftX]];
                     break;
                 case 'down':
@@ -273,11 +273,16 @@ window.onload = () => {
         }
     }
 
+    let lastPlayerMove = 0;
+    let lastGhostMove = 0;
+    let ghostRun = 0;
     let ghostSpeed = GHOST_HUNT_SPEED;
-    let particles = 0;
+    let particles = 253;
+    let lives = 3;
     createMap();
 
     let started = false;
+    let paused = false;
     document.getElementById('play').onclick = startGame;
 
     function createMap() {
@@ -298,12 +303,15 @@ window.onload = () => {
             }
             mapElement.append(row);
         }
+        mapElement.append(document.getElementById('game_status'));
+
         const playerElement = document.createElement('img');
         playerElement.id = 'player';
         playerElement.setAttribute('src', 'images/pacman/pacman.png');
         playerElement.style.left = (SPACE_SIZE * PLAYER_SPAWN_X) + 'px';
         playerElement.style.top = (SPACE_SIZE * PLAYER_SPAWN_Y) + 'px';
         document.getElementById('map').append(playerElement);
+
         for (let i = 0; i < GHOST_COUNT; i++) {
             const ghostElement = document.createElement('img');
             ghostElement.id = `ghost ${i}`;
@@ -324,16 +332,11 @@ window.onload = () => {
         playerElement.style.left = (PLAYER_SPAWN_X * SPACE_SIZE) + 'px';
         playerElement.style.top = (PLAYER_SPAWN_Y * SPACE_SIZE) + 'px';
         playerElement.style.rotate = 'none';
-        playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
 
         window.ghosts = [];
 
         for (let i = 0; i < GHOST_COUNT; i++) {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, i);
-            if (i === 0) ghost.spawn();
-            else window.spawnTimer[i] = setTimeout(() => {
-                ghost.spawn();
-            }, SPAWN_TIMER);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
             ghostElement.style.transitionProperty = 'none';
@@ -344,11 +347,28 @@ window.onload = () => {
     }
 
     function startGame() {
-        if (started) return;
-        started = true;
+        if (started || paused) return;
+        const lifeElements = document.getElementsByClassName('life');
+        for (const life of lifeElements) {
+            life.style.visibility = 'visible';
+        }
+        lives = 3;
         particles = 253;
         ghostSpeed = GHOST_HUNT_SPEED;
+        lastPlayerMove = 0;
+        lastGhostMove = 0;
+        ghostRun = 0;
         createEntities();
+        for (const ghost of ghosts) {
+            if (!ghost.num) ghost.spawn();
+            else {
+                window.spawnTimer[ghost.num] = setTimeout(() => {
+                    ghost.spawn();
+                }, SPAWN_TIMER);
+            }
+        }
+        const playerElement = document.getElementById('player');
+        playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
         // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
         const hiddenParticles = document.querySelectorAll('.hiddenParticle');
         for (const hiddenParticle of hiddenParticles) {
@@ -365,13 +385,45 @@ window.onload = () => {
         window.onkeydown = event => {
             player.changeDirection(event.key);
         }
+        started = true;
     }
 
-    let lastPlayerMove = 0;
-    let lastGhostMove = 0;
-    let ghostRun = 0;
+    function nextLife() {
+        lives--;
+        ghostSpeed = GHOST_HUNT_SPEED;
+        lastPlayerMove = 0;
+        lastGhostMove = 0;
+        ghostRun = 0;
+
+        const gameStatusElement = document.getElementById('game_status');
+        gameStatusElement.style.color = 'yellow';
+        let countTime = 3;
+        gameStatusElement.innerText = countTime;
+        window.countTimer = setInterval(() => {
+            countTime--;
+            gameStatusElement.innerText = countTime;
+            if (!countTime) {
+                clearInterval(window.countTimer);
+                gameStatusElement.style.display = 'none';
+                createEntities();
+                paused = false;
+                const playerElement = document.getElementById('player');
+                playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
+                for (const ghost of ghosts) {
+                    if (!ghost.num) ghost.spawn();
+                    else {
+                        window.spawnTimer[ghost.num] = setTimeout(() => {
+                            ghost.spawn();
+                        }, SPAWN_TIMER);
+                    }
+                }
+                requestAnimationFrame(updateGame);
+            }
+        }, 1000);
+    }
+
     function updateGame(timestamp) {
-        if (!started) return;
+        if (!started || paused) return;
         if (timestamp - lastPlayerMove >= PLAYER_SPEED) {
             if (player.canMove()) {
                 const offsetX = Math.abs(player.newX - player.x), offsetY = Math.abs(player.newY - player.y);
@@ -405,7 +457,6 @@ window.onload = () => {
                 if (particle) {
                     // Player eats and removes the particle stepped on
                     particles--;
-                    if (!particles) return endGame('win');
                     if (particle.className === 'bigParticle') {
                         ghostSpeed = GHOST_RUN_SPEED;
                         ghostRun = 0;
@@ -416,6 +467,7 @@ window.onload = () => {
                         }
                     }
                     particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
+                    if (!particles) return endGame('win');
                 }
             }
             lastPlayerMove = timestamp;
@@ -486,11 +538,19 @@ window.onload = () => {
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman.png');
 
+        
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
+        
+        if (lives && gameStatus === 'lose') {
+            const lifeElement = document.getElementById(`life ${lives}`);
+            lifeElement.style.visibility = 'hidden';
+            paused = true;
+            nextLife();
+            return;
+        }
         gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
         gameStatusElement.style.color = gameStatus === 'win' ? 'green' : 'red';
-        document.getElementById('map').append(gameStatusElement);
 
         started = false;
     }
