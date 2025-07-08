@@ -7,27 +7,12 @@ body {
     background-color: black;
 }
 
-#info_container {
+#play_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
-    height: 20%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 25px;
-}
-
-#score_container {
-    width: 200px;
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#score {
-    font-size: 69px;
-    font-family: Impact, fantasy;
-    color: white;
+    height: 130px;
 }
 
 #play {
@@ -51,9 +36,34 @@ body {
     border: 3px solid rgb(235, 235, 0);
 }
 
+#info_container {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+}
+
+#score_container,
+#level_container {
+    width: 200px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#score,
+#level_container {
+    font-size: 69px;
+    font-family: Impact, fantasy;
+    color: white;
+}
+
 #lives {
     width: 200px;
-    height: 100px;
+    height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -63,6 +73,7 @@ body {
     height: 50px;
     width: 50px;
 }
+
 #map_container {
     width: 100%;
     height: 70%;

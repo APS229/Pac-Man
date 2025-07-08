@@ -1,10 +1,13 @@
 window.onload = () => {
-    const PLAYER_SPEED = 266;
+    // level 1 player speed is supposed to be 3.75 but I changed it
+    const SPEED_MULTIPLIERS = {
+        player: [4.25, 4.5, 5, 4.5],
+        ghost_hunt: [3.75, 4.25, 4.75, 4.75],
+        ghost_run: [2.5, 2.75, 3, 3]
+    };
     const PLAYER_SPAWN_X = 11;
     const PLAYER_SPAWN_Y = 13;
     const PLAYER_SEARCH_DISTANCE = 9;
-    const GHOST_HUNT_SPEED = 333;
-    const GHOST_RUN_SPEED = 532;
     const GHOST_COUNT = 4;
     const SPAWN_TIMER = 5000;
     const RUN_TIMER = 6000;
@@ -273,10 +276,12 @@ window.onload = () => {
         }
     }
 
+    let level = 1;
     let lastPlayerMove = 0;
     let lastGhostMove = 0;
     let ghostRun = 0;
-    let ghostSpeed = GHOST_HUNT_SPEED;
+    let playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][0];
+    let ghostSpeed = 1000 / SPEED_MULTIPLIERS['ghost_hunt'][0];
     let particles = 10;
     let lives = 3;
     let score = 0;
@@ -355,7 +360,8 @@ window.onload = () => {
             life.style.visibility = 'visible';
         }
         lives = 3;
-        ghostSpeed = GHOST_HUNT_SPEED;
+        playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][0];
+        ghostSpeed = 1000 / SPEED_MULTIPLIERS['ghost_hunt'][0];
         lastPlayerMove = 0;
         lastGhostMove = 0;
         ghostRun = 0;
@@ -401,21 +407,37 @@ window.onload = () => {
         document.getElementById('score').innerText = score;
     }
 
+    function getGhostSpeed(phase) {
+        if (level === 1) return 1000 / SPEED_MULTIPLIERS[`ghost_${phase}`][0];
+        if (level < 5) return 1000 / SPEED_MULTIPLIERS[`ghost_${phase}`][1];
+        if (level < 21) return 1000 / SPEED_MULTIPLIERS[`ghost_${phase}`][2];
+        return 1000 / SPEED_MULTIPLIERS[`ghost_${phase}`][3];
+    }
+
     async function nextRound(gameStatus) {
         const gameStatusElement = document.getElementById('game_status');
 
-        ghostSpeed = GHOST_HUNT_SPEED;
         lastPlayerMove = 0;
         lastGhostMove = 0;
         ghostRun = 0;
 
-        if (gameStatus === 'lose') lives--;
+        if (gameStatus === 'lose') {
+            ghostSpeed = getGhostSpeed('hunt');
+            lives--;
+        }
         else {
+            level++;
+            if (level < 5) playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][1];
+            else if (level < 21) playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][2];
+            else playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][3];
+            ghostSpeed = getGhostSpeed('hunt');
+            console.log(playerSpeed, ghostSpeed);
             gameStatusElement.style.color = 'green';
             gameStatusElement.innerText = 'ROUND COMPLETED!';
             await new Promise(res => setTimeout(res, 3000));
         }
         gameStatusElement.style.color = 'yellow';
+        document.getElementById('level').innerText = level;
         let countTime = 3;
         gameStatusElement.innerText = countTime;
         window.countTimer = setInterval(() => {
@@ -444,7 +466,7 @@ window.onload = () => {
 
     function updateGame(timestamp) {
         if (!started || paused) return;
-        if (timestamp - lastPlayerMove >= PLAYER_SPEED) {
+        if (timestamp - lastPlayerMove >= playerSpeed) {
             if (player.canMove()) {
                 const offsetX = Math.abs(player.newX - player.x), offsetY = Math.abs(player.newY - player.y);
                 const playerElement = document.getElementById('player');
@@ -479,7 +501,7 @@ window.onload = () => {
                     particles--;
                     if (particle.className === 'bigParticle') {
                         updateScore(100);
-                        ghostSpeed = GHOST_RUN_SPEED;
+                        ghostSpeed = getGhostSpeed('run');
                         ghostRun = 0;
                         for (const ghost of ghosts) {
                             ghost.phase = 'run';
@@ -527,10 +549,10 @@ window.onload = () => {
             }
             lastGhostMove = timestamp;
 
-            if (ghostSpeed === GHOST_RUN_SPEED) {
+            if (ghostSpeed === getGhostSpeed('run')) {
                 ghostRun += ghostDiff;
                 if (ghostRun >= RUN_TIMER) {
-                    ghostSpeed = GHOST_HUNT_SPEED;
+                    ghostSpeed = getGhostSpeed('hunt');
                     for (const ghost of ghosts) {
                         ghost.phase = 'hunt';
                         const ghostElement = document.getElementById(`ghost ${ghost.num}`);
