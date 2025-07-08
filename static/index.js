@@ -277,8 +277,9 @@ window.onload = () => {
     let lastGhostMove = 0;
     let ghostRun = 0;
     let ghostSpeed = GHOST_HUNT_SPEED;
-    let particles = 253;
+    let particles = 10;
     let lives = 3;
+    let score = 0;
     createMap();
 
     let started = false;
@@ -339,6 +340,7 @@ window.onload = () => {
             const ghost = new Ghost(i > 1 ? 10 + i : 9 + i, 11, i);
             ghosts.push(ghost);
             const ghostElement = document.getElementById(`ghost ${i}`);
+            ghostElement.setAttribute('src', `images/ghosts/${ghost.num + 1}.png`);
             ghostElement.style.transitionProperty = 'none';
             ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
             ghostElement.style.top = (ghost.y * SPACE_SIZE) + 'px';
@@ -353,7 +355,6 @@ window.onload = () => {
             life.style.visibility = 'visible';
         }
         lives = 3;
-        particles = 253;
         ghostSpeed = GHOST_HUNT_SPEED;
         lastPlayerMove = 0;
         lastGhostMove = 0;
@@ -369,15 +370,9 @@ window.onload = () => {
         }
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
-        // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
-        const hiddenParticles = document.querySelectorAll('.hiddenParticle');
-        for (const hiddenParticle of hiddenParticles) {
-            hiddenParticle.className = 'particle';
-        }
-        const hiddenBigParticles = document.querySelectorAll('.hiddenBigParticle');
-        for (const hiddenBigParticle of hiddenBigParticles) {
-            hiddenBigParticle.className = 'bigParticle';
-        }
+
+        resetParticles();
+
         document.getElementById('game_status').style.display = 'none';
 
         requestAnimationFrame(updateGame);
@@ -388,14 +383,38 @@ window.onload = () => {
         started = true;
     }
 
-    function nextLife() {
-        lives--;
+    function resetParticles() {
+        particles = 253;
+        // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
+        const hiddenParticles = document.querySelectorAll('.hiddenParticle');
+        for (const hiddenParticle of hiddenParticles) {
+            hiddenParticle.className = 'particle';
+        }
+        const hiddenBigParticles = document.querySelectorAll('.hiddenBigParticle');
+        for (const hiddenBigParticle of hiddenBigParticles) {
+            hiddenBigParticle.className = 'bigParticle';
+        }
+    }
+
+    function updateScore(points) {
+        score += points;
+        document.getElementById('score').innerText = score;
+    }
+
+    async function nextRound(gameStatus) {
+        const gameStatusElement = document.getElementById('game_status');
+
         ghostSpeed = GHOST_HUNT_SPEED;
         lastPlayerMove = 0;
         lastGhostMove = 0;
         ghostRun = 0;
 
-        const gameStatusElement = document.getElementById('game_status');
+        if (gameStatus === 'lose') lives--;
+        else {
+            gameStatusElement.style.color = 'green';
+            gameStatusElement.innerText = 'ROUND COMPLETED!';
+            await new Promise(res => setTimeout(res, 3000));
+        }
         gameStatusElement.style.color = 'yellow';
         let countTime = 3;
         gameStatusElement.innerText = countTime;
@@ -403,6 +422,7 @@ window.onload = () => {
             countTime--;
             gameStatusElement.innerText = countTime;
             if (!countTime) {
+                if (gameStatus === 'win') resetParticles();
                 clearInterval(window.countTimer);
                 gameStatusElement.style.display = 'none';
                 createEntities();
@@ -458,6 +478,7 @@ window.onload = () => {
                     // Player eats and removes the particle stepped on
                     particles--;
                     if (particle.className === 'bigParticle') {
+                        updateScore(100);
                         ghostSpeed = GHOST_RUN_SPEED;
                         ghostRun = 0;
                         for (const ghost of ghosts) {
@@ -465,6 +486,9 @@ window.onload = () => {
                             const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                             ghostElement.setAttribute('src', 'images/ghosts/run.png');
                         }
+                    }
+                    else {
+                        updateScore(50);
                     }
                     particle.className === 'bigParticle' ? particle.className = 'hiddenBigParticle' : particle.className = 'hiddenParticle';
                     if (!particles) return endGame('win');
@@ -521,6 +545,7 @@ window.onload = () => {
             if (ghost.x === player.x && ghost.y === player.y) {
                 if (ghost.phase === 'hunt') return endGame('lose');
 
+                updateScore(200);
                 ghost.die();
                 const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                 ghostElement.style.transitionProperty = 'none';
@@ -538,20 +563,23 @@ window.onload = () => {
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman.png');
 
-        
+
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
-        
-        if (lives && gameStatus === 'lose') {
-            const lifeElement = document.getElementById(`life ${lives}`);
-            lifeElement.style.visibility = 'hidden';
+
+        if (lives || gameStatus === 'win') {
+            if (gameStatus === 'lose') {
+                const lifeElement = document.getElementById(`life ${lives}`);
+                lifeElement.style.visibility = 'hidden';
+            }
+
             paused = true;
-            nextLife();
+            nextRound(gameStatus);
             return;
         }
-        gameStatusElement.innerText = gameStatus === 'win' ? "YOU WIN!" : "GAME OVER";
-        gameStatusElement.style.color = gameStatus === 'win' ? 'green' : 'red';
-
+        gameStatusElement.innerText = "GAME OVER";
+        gameStatusElement.style.color = 'red';
+        score = 0;
         started = false;
     }
 };
