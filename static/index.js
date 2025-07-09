@@ -9,8 +9,9 @@ window.onload = () => {
     const PLAYER_SPAWN_Y = 13;
     const PLAYER_SEARCH_DISTANCE = 9;
     const GHOST_COUNT = 4;
-    const SPAWN_TIMER = 5000;
-    const RUN_TIMER = 6000;
+    const SPAWN_TIME = 5000;
+    const RUN_TIME = 6000;
+    const RUN_SWITCH_TIME = 4600;
     const SEARCH_DISTANCE_MAX = 10;
     const SEARCH_DISTANCE_MIN = 5;
     const MAP_SIZE = 23;
@@ -272,7 +273,7 @@ window.onload = () => {
             this.y = 11;
             window.spawnTimer[this.num] = setTimeout(() => {
                 this.spawn();
-            }, SPAWN_TIMER);
+            }, SPAWN_TIME);
         }
     }
 
@@ -371,7 +372,7 @@ window.onload = () => {
             else {
                 window.spawnTimer[ghost.num] = setTimeout(() => {
                     ghost.spawn();
-                }, SPAWN_TIMER);
+                }, SPAWN_TIME);
             }
         }
         const playerElement = document.getElementById('player');
@@ -456,7 +457,7 @@ window.onload = () => {
                     else {
                         window.spawnTimer[ghost.num] = setTimeout(() => {
                             ghost.spawn();
-                        }, SPAWN_TIMER);
+                        }, SPAWN_TIME);
                     }
                 }
                 requestAnimationFrame(updateGame);
@@ -551,12 +552,18 @@ window.onload = () => {
 
             if (ghostSpeed === getGhostSpeed('run')) {
                 ghostRun += ghostDiff;
-                if (ghostRun >= RUN_TIMER) {
+                if (ghostRun >= RUN_TIME) {
                     ghostSpeed = getGhostSpeed('hunt');
                     for (const ghost of ghosts) {
                         ghost.phase = 'hunt';
                         const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                         ghostElement.setAttribute('src', `images/ghosts/${ghost.num + 1}.png`);
+                    }
+                }
+                else if (ghostRun >= RUN_SWITCH_TIME) {
+                    for (const ghost of ghosts) {
+                        const ghostElement = document.getElementById(`ghost ${ghost.num}`);
+                        ghostElement.setAttribute('src', 'images/ghosts/run_2.png');
                     }
                 }
             }
