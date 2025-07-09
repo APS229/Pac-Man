@@ -172,3 +172,7 @@ td {
     font-family: Impact, fantasy;
     text-align: center;
 }
+
+audio {
+    display: none;
+}

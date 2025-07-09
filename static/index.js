@@ -5,6 +5,7 @@ window.onload = () => {
         ghost_hunt: [3.75, 4.25, 4.75, 4.75],
         ghost_run: [2.5, 2.75, 3, 3]
     };
+    const TOTAL_PARTICLES = 253;
     const PLAYER_SPAWN_X = 11;
     const PLAYER_SPAWN_Y = 13;
     const PLAYER_SEARCH_DISTANCE = 9;
@@ -283,7 +284,7 @@ window.onload = () => {
     let ghostRun = 0;
     let playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][0];
     let ghostSpeed = 1000 / SPEED_MULTIPLIERS['ghost_hunt'][0];
-    let particles = 10;
+    let particles = TOTAL_PARTICLES;
     let lives = 3;
     let score = 0;
     createMap();
@@ -354,7 +355,7 @@ window.onload = () => {
         }
     }
 
-    function startGame() {
+    async function startGame() {
         if (started || paused) return;
         const lifeElements = document.getElementsByClassName('life');
         for (const life of lifeElements) {
@@ -367,6 +368,17 @@ window.onload = () => {
         lastGhostMove = 0;
         ghostRun = 0;
         createEntities();
+        resetParticles();
+
+        const deathAudio = document.getElementById('death');
+        deathAudio.pause();
+        deathAudio.currentTime = 0;
+        const introAudio = document.getElementById('intro');
+        introAudio.play();
+        await new Promise((res) => {
+            introAudio.addEventListener('ended', res);
+        });
+
         for (const ghost of ghosts) {
             if (!ghost.num) ghost.spawn();
             else {
@@ -375,10 +387,9 @@ window.onload = () => {
                 }, SPAWN_TIME);
             }
         }
+
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
-
-        resetParticles();
 
         document.getElementById('game_status').style.display = 'none';
 
@@ -391,7 +402,7 @@ window.onload = () => {
     }
 
     function resetParticles() {
-        particles = 253;
+        particles = TOTAL_PARTICLES;
         // querySelectorAll over getElementsByClassName, HTMLCollection skips elements
         const hiddenParticles = document.querySelectorAll('.hiddenParticle');
         for (const hiddenParticle of hiddenParticles) {
@@ -423,7 +434,6 @@ window.onload = () => {
         ghostRun = 0;
 
         if (gameStatus === 'lose') {
-            ghostSpeed = getGhostSpeed('hunt');
             lives--;
         }
         else {
@@ -431,24 +441,27 @@ window.onload = () => {
             if (level < 5) playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][1];
             else if (level < 21) playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][2];
             else playerSpeed = 1000 / SPEED_MULTIPLIERS['player'][3];
-            ghostSpeed = getGhostSpeed('hunt');
-            console.log(playerSpeed, ghostSpeed);
             gameStatusElement.style.color = 'green';
-            gameStatusElement.innerText = 'ROUND COMPLETED!';
-            await new Promise(res => setTimeout(res, 3000));
+            gameStatusElement.innerText = `LEVEL ${level - 1} COMPLETED!`;
+            const levelEndAudio = document.getElementById('level_end');
+            levelEndAudio.play();
+            await new Promise((res) => {
+                levelEndAudio.addEventListener('ended', res);
+            });
         }
+        ghostSpeed = getGhostSpeed('hunt');
         gameStatusElement.style.color = 'yellow';
         document.getElementById('level').innerText = level;
         let countTime = 3;
         gameStatusElement.innerText = countTime;
+        createEntities();
+        if (gameStatus === 'win') resetParticles();
         window.countTimer = setInterval(() => {
             countTime--;
             gameStatusElement.innerText = countTime;
             if (!countTime) {
-                if (gameStatus === 'win') resetParticles();
                 clearInterval(window.countTimer);
                 gameStatusElement.style.display = 'none';
-                createEntities();
                 paused = false;
                 const playerElement = document.getElementById('player');
                 playerElement.setAttribute('src', 'images/pacman/pacman-eating.gif');
@@ -576,6 +589,7 @@ window.onload = () => {
 
                 updateScore(200);
                 ghost.die();
+                document.getElementById('eat_ghost').play();
                 const ghostElement = document.getElementById(`ghost ${ghost.num}`);
                 ghostElement.style.transitionProperty = 'none';
                 ghostElement.style.left = (ghost.x * SPACE_SIZE) + 'px';
@@ -586,12 +600,20 @@ window.onload = () => {
         requestAnimationFrame(updateGame);
     }
 
-    function endGame(gameStatus) {
+    async function endGame(gameStatus) {
         for (const timer of spawnTimer) clearTimeout(timer);
 
         const playerElement = document.getElementById('player');
         playerElement.setAttribute('src', 'images/pacman/pacman.png');
 
+
+        if (gameStatus === 'lose') {
+            const deathAudio = document.getElementById('death')
+            deathAudio.play();
+            await new Promise((res) => {
+                deathAudio.addEventListener('ended', res);
+            });
+        }
 
         const gameStatusElement = document.getElementById('game_status');
         gameStatusElement.style.display = 'block';
